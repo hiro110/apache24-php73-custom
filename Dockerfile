@@ -17,10 +17,10 @@ COPY sshd_config /etc/ssh/
 COPY apache2.conf /etc/apache2/
 COPY ssh_setup.sh /tmp
 RUN mkdir -p /opt/startup \
-   && chmod -R +x /opt/startup \
-   && chmod -R +x /tmp/ssh_setup.sh \
-   && (sleep 1;/tmp/ssh_setup.sh 2>&1 > /dev/null) \
-   && rm -rf /tmp/*
+    && chmod -R +x /opt/startup \
+    && chmod -R +x /tmp/ssh_setup.sh \
+    && (sleep 1;/tmp/ssh_setup.sh 2>&1 > /dev/null) \
+    && rm -rf /tmp/*
 
 RUN DEBIAN_FRONTEND=noninteractive
 RUN apt-get install -y tzdata
@@ -37,7 +37,7 @@ ENV WEBSITE_INSTANCE_ID localInstance
 ENV PATH ${PATH}:/home/site/wwwroot
 
 RUN rm -f /usr/local/etc/php/conf.d/php.ini \
-   && { \
+    && { \
         echo 'error_log=/dev/stderr'; \
         echo 'display_errors=Off'; \
         echo 'log_errors=On'; \
