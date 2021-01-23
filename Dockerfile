@@ -1,78 +1,81 @@
-FROM php:7.3-apache
+FROM alpine:3.12
 
-RUN a2enmod rewrite expires include deflate headers remoteip
+RUN apk update \
+    && apk --no-cache add \
+        vim curl wget git tcptraceroute bind-tools tcpdump bash \
+        apache2 php7-apache2 \
+        php7-curl \
+        php7-ctype \
+        php7-dev \
+        php7-dom \
+        php7-embed \
+        php7-exif \
+        php7-gd \
+        php7-intl \
+        php7-mbstring \
+        php7-mysqli \
+        php7-opcache \
+        php7-openssl \
+        php7-pdo \
+        php7-pdo_mysql \
+        php7-pecl-redis \
+        php7-phar \
+        php7-json \
+        php7-session \
+        php7-xml \
+        php7-xmlreader \
+        php7-zip
 
-RUN DEBIAN_FRONTEND=noninteractive
-RUN apt install -y tzdata
-ENV TZ=Asia/Tokyo
-RUN apt install -y tzdata
+RUN apk --no-cache add tzdata \
+    && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
+    && apk del tzdata
 
-RUN apt update \
-        && apt install -y --no-install-recommends \
-        # # libpng-dev \
-        # # libjpeg-dev \
-        # # libpq-dev \
-        # # libmcrypt-dev \
-        # # libldap2-dev \
-        # # libldb-dev \
-        # # libicu-dev \
-        # # libgmp-dev \
-        imagemagick libmagickwand-dev \
-        vim wget \
-        # # openssh-server vim curl wget tcptraceroute \
-        # # && ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so \
-        # # && ln -s /usr/lib/x86_64-linux-gnu/liblber.so /usr/lib/liblber.so \
-        # # && ln -s /usr/include/x86_64-linux-gnu/gmp.h /usr/include/gmp.h
-        # && rm -rf /var/lib/apt/lists/* \
-        # && pecl install imagick \
-        # && pecl install mcrypt-1.0.4 \
-        # && docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
-        && docker-php-ext-install -j$(nproc) gd mysqli opcache pdo_mysql
-        # pdo_pgsql \
-        # pgsql \
-        # intl \
-        # gmp \
-        # zip \
-        # gd \
-        # && docker-php-ext-enable imagick
-        # && docker-php-ext-enable mcrypt
-
-COPY init_container.sh /bin/
-COPY hostingstart.html /home/site/wwwroot/hostingstart.html
-COPY index.php /home/site/wwwroot/index.php
-
-RUN chmod 755 /bin/init_container.sh \
+RUN mkdir -p /home/site/wwwroot \
     && mkdir -p /home/LogFiles/ \
     && echo "root:Docker!" | chpasswd \
     && echo "cd /home/site/wwwroot" >> /etc/bash.bashrc \
-    && ln -s /home/site/wwwroot /var/www/html \
-    && mkdir -p /opt/startup
+    && rm -rf /var/www/localhost/htdocs \
+    && ln -s /home/site/wwwroot /var/www/localhost/htdocs \
+    && mv /etc/apache2/httpd.conf /etc/apache2/httpd.conf.bk \
+    && mkdir -p /opt/startup \
+    && chmod -R +x /opt/startup
+
+COPY init_container.sh /bin/
+# COPY hostingstart.html /home/site/wwwroot/
+COPY index.php /home/site/wwwroot/
+RUN chmod 755 /bin/init_container.sh
 
 # configure ssh
 COPY sshd_config /etc/ssh/
 
-# configure apache
-COPY apache2.conf /etc/apache2/
+# # configure apache
+COPY httpd.conf /etc/apache2/
 
 # configure php
-RUN echo 'error_log=/dev/stderr' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'display_startup_errors=Off' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'date.timezone=Asia/Tokyo' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'mbstring.language = Japanese' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'mbstring.internal_encoding = UTF-8' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'mbstring.http_input = pass' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'mbstring.http_output = pass' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'mbstring.encoding_translation = Off' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'mbstring.detect_order = auto' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'session.cookie_httponly = 1' >> /usr/local/etc/php/conf.d/php.ini \
-    && echo 'session.cookie_secure = 1' >> /usr/local/etc/php/conf.d/php.ini \
-    && sed -i "s/expose_php = On/expose_php = off/g" /usr/local/etc/php/conf.d/php.ini \
-    && sed -i "s/zlib.output_compression = Off/zlib.output_compression = On/g" /usr/local/etc/php/conf.d/php.ini
+RUN echo 'error_log=/dev/stderr' >> /etc/php7/php.ini \
+    && echo 'display_startup_errors=Off' >> /etc/php7/php.ini \
+    && echo 'date.timezone=Asia/Tokyo' >> /etc/php7/php.ini \
+    && sed -i "s/;mbstring.language = Japanese/mbstring.language = Japanese/g" /etc/php7/php.ini \
+    && sed -i "s/;mbstring.internal_encoding =/mbstring.internal_encoding = UTF-8/g" /etc/php7/php.ini \
+    && sed -i "s/;mbstring.http_input =/mbstring.http_input = pass/g" /etc/php7/php.ini \
+    && sed -i "s/;mbstring.http_output =/mbstring.http_output = pass/g" /etc/php7/php.ini \
+    && sed -i "s/;mbstring.encoding_translation = Off/mbstring.encoding_translation = Off/g" /etc/php7/php.ini \
+    && sed -i "s/;mbstring.detect_order = auto/mbstring.detect_order = auto/g" /etc/php7/php.ini \
+    && sed -i "s/session.cookie_httponly =/session.cookie_httponly = 1/g" /etc/php7/php.ini \
+    && sed -i "s/;session.cookie_secure =/session.cookie_secure = 1/g" /etc/php7/php.ini \
+    && sed -i "s/expose_php = On/expose_php = off/g" /etc/php7/php.ini \
+    && sed -i "s/zlib.output_compression = Off/zlib.output_compression = On/g" /etc/php7/php.ini
+
+RUN sed -i "s/;opcache.enable=1/opcache.enable=1/g" /etc/php7/php.ini \
+    && sed -i "s/;opcache.optimization_level=0x7FFFBFFF/opcache.optimization_level=0x7FFFBFFF/g" /etc/php7/php.ini \
+    && sed -i "s/;opcache.revalidate_freq=2/opcache.revalidate_freq=0/g" /etc/php7/php.ini \
+    && sed -i "s/;opcache.validate_timestamps=1/opcache.validate_timestamps=1/g" /etc/php7/php.ini \
+    && sed -i "s/;opcache.memory_consumption=128/opcache.memory_consumption=128/g" /etc/php7/php.ini \
+    && sed -i "s/;opcache.interned_strings_buffer=8/opcache.interned_strings_buffer=8/g" /etc/php7/php.ini \
+    && sed -i "s/;opcache.max_accelerated_files=10000/opcache.max_accelerated_files=4000/g" /etc/php7/php.ini
 
 COPY ssh_setup.sh /tmp
-RUN mkdir -p /opt/startup \
-    && chmod -R +x /opt/startup \
-    && chmod -R +x /tmp/ssh_setup.sh \
+RUN chmod -R +x /tmp/ssh_setup.sh \
     && (sleep 1;/tmp/ssh_setup.sh 2>&1 > /dev/null) \
     && rm -rf /tmp/*
 
@@ -80,7 +83,6 @@ ENV APACHE_PORT 8080
 ENV SSH_PORT 2222
 EXPOSE 2222 8080
 
-ENV APACHE_RUN_USER www-data
 ENV PHP_VERSION 7.3
 ENV WEBSITE_ROLE_INSTANCE_ID localRoleInstance
 ENV WEBSITE_INSTANCE_ID localInstance
