@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 cat >/etc/motd <<EOL
   _____
   /  _  \ __________ _________   ____
@@ -22,8 +22,6 @@ sed -i "s/SSH_PORT/$SSH_PORT/g" /etc/ssh/sshd_config
 /usr/sbin/sshd
 
 # replace occurence of PORT in config site file for nginx
-sed -i "s/{APACHE_PORT}/$APACHE_PORT/g" /etc/apache2/apache2.conf
-# sed -i "s/{APACHE_PORT}/$APACHE_PORT/g" /usr/local/apache2/conf/httpd.conf
-# /usr/sbin/httpd -D FOREGROUND
-/usr/sbin/apachectl -D FOREGROUND
-apachectl restart
+sed -i "s/{APACHE_PORT}/$APACHE_PORT/g" /etc/apache2/httpd.conf
+/usr/sbin/httpd -D FOREGROUND
+/usr/sbin/httpd -k graceful
