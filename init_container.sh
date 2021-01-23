@@ -1,11 +1,11 @@
 #!/bin/bash
-cat >/etc/motd <<EOL 
-  _____                               
-  /  _  \ __________ _________   ____  
- /  /_\  \\___   /  |  \_  __ \_/ __ \ 
-/    |    \/    /|  |  /|  | \/\  ___/ 
+cat >/etc/motd <<EOL
+  _____
+  /  _  \ __________ _________   ____
+ /  /_\  \\___   /  |  \_  __ \_/ __ \
+/    |    \/    /|  |  /|  | \/\  ___/
 \____|__  /_____ \____/ |__|    \___  >
-        \/      \/                  \/ 
+        \/      \/                  \/
 A P P   S E R V I C E   O N   L I N U X
 
 Documentation: http://aka.ms/webapp-linux
@@ -21,20 +21,9 @@ eval $(printenv | sed -n "s/^\([^=]\+\)=\(.*\)$/export \1=\2/p" | sed 's/"/\\\"/
 sed -i "s/SSH_PORT/$SSH_PORT/g" /etc/ssh/sshd_config
 /usr/sbin/sshd
 
-appPath="/home/site/wwwroot"
-runFromPath="/tmp/webapp"
-startupCommandPath="/opt/startup/startup.sh"
-userStartupCommand="$@"
-if [ -z "$userStartupCommand" ]
-then
-  userStartupCommand="apache2-foreground";
-else
-  userStartupCommand="$userStartupCommand; apache2-foreground;"
-fi
-
-oryxArgs="-appPath $appPath -output $startupCommandPath \
-    -bindPort $PORT -startupCommand '$userStartupCommand'"
-
-echo "Running oryx $oryxArgs"
-eval oryx $oryxArgs
-$startupCommandPath
+# replace occurence of PORT in config site file for nginx
+sed -i "s/{APACHE_PORT}/$APACHE_PORT/g" /etc/apache2/apache2.conf
+# sed -i "s/{APACHE_PORT}/$APACHE_PORT/g" /usr/local/apache2/conf/httpd.conf
+# /usr/sbin/httpd -D FOREGROUND
+/usr/sbin/apachectl -D FOREGROUND
+apachectl restart
